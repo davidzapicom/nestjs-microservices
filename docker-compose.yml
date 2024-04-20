@@ -1,0 +1,25 @@
+services:
+  reservations:
+    build:
+      context: .
+      dockerfile: ./apps/reservations/Dockerfile
+      target: development
+    command: yarn run start:dev reservations
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+  auth:
+    build:
+      context: .
+      dockerfile: ./apps/auth/Dockerfile
+      target: development
+    command: yarn run start:dev auth
+    ports:
+      - 3001:3001
+    volumes:
+      - .:/app
+  mongo:
+    image: mongo:4.0
+    ports:
+      - 27017:27017
