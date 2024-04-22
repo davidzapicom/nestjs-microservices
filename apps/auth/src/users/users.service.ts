@@ -4,37 +4,32 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
+import { CreateUserDto } from './dto/create-user.dto';
+import { GetUserDto } from './dto/get-user.dto';
 import { UsersRepository } from './users.repository';
-import { CreateUserRequest } from './dto/create-user.request';
-import { User } from './schemas/user.schema';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  async createUser(request: CreateUserRequest) {
-    await this.validateCreateUserRequest(request);
-    const user = await this.usersRepository.create({
-      ...request,
-      password: await bcrypt.hash(request.password, 10),
+  async create(createUserDto: CreateUserDto) {
+    await this.validateCreateUserDto(createUserDto);
+    return this.usersRepository.create({
+      ...createUserDto,
+      password: await bcrypt.hash(createUserDto.password, 10),
     });
-    return user;
   }
 
-  private async validateCreateUserRequest(request: CreateUserRequest) {
-    let user: User;
+  private async validateCreateUserDto(createUserDto: CreateUserDto) {
     try {
-      user = await this.usersRepository.findOne({
-        email: request.email,
-      });
-    } catch (err) {}
-
-    if (user) {
-      throw new UnprocessableEntityException('Email already exists.');
+      await this.usersRepository.findOne({ email: createUserDto.email });
+    } catch (err) {
+      return;
     }
+    throw new UnprocessableEntityException('Email already exists.');
   }
 
-  async validateUser(email: string, password: string) {
+  async verifyUser(email: string, password: string) {
     const user = await this.usersRepository.findOne({ email });
     const passwordIsValid = await bcrypt.compare(password, user.password);
     if (!passwordIsValid) {
@@ -43,7 +38,7 @@ export class UsersService {
     return user;
   }
 
-  async getUser(getUserArgs: Partial<User>) {
-    return this.usersRepository.findOne(getUserArgs);
+  async getUser(getUserDto: GetUserDto) {
+    return this.usersRepository.findOne(getUserDto);
   }
 }
