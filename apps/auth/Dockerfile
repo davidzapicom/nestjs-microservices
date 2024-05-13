@@ -1,28 +1,37 @@
-FROM node:lts-alpine AS development
+FROM node:alpine As development
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-COPY package.json yarn.lock ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
+COPY tsconfig.json tsconfig.json
+COPY nest-cli.json nest-cli.json
 
-RUN yarn install
+RUN npm install -g pnpm
 
-COPY . .
+RUN pnpm install
 
-RUN yarn build
+COPY apps/auth apps/auth
+COPY libs libs
 
-FROM node:lts-alpine AS production
+RUN cd apps/auth && pnpm install
+
+RUN pnpm run build auth
+
+FROM node:alpine as production
 
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-COPY package.json yarn.lock ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
 
-RUN yarn install --prod
+RUN npm install -g pnpm
 
-COPY . .
+RUN pnpm install --prod
 
-COPY --from=development /app/dist ./dist
+COPY --from=development /usr/src/app/dist ./dist
 
 CMD ["node", "dist/apps/auth/main"]
